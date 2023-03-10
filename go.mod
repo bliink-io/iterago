@@ -1,4 +1,4 @@
-module github.com/ulphidius/iterago
+module github.com/bliink-io/iterago
 
 go 1.19
 
