@@ -1,6 +1,7 @@
 package iterago
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -161,7 +162,7 @@ func TestNewPair(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want Pair[uint]
+		want Pair[uint, uint]
 	}{
 		{
 			name: "OK",
@@ -169,7 +170,7 @@ func TestNewPair(t *testing.T) {
 				first:  1,
 				second: 2,
 			},
-			want: Pair[uint]{
+			want: Pair[uint, uint]{
 				First:  1,
 				Second: 2,
 			},
@@ -180,6 +181,36 @@ func TestNewPair(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			result := NewPair(testCase.args.first, testCase.args.second)
 			assert.Equal(t, testCase.want, result)
+		})
+	}
+}
+
+func TestNewPairUnwrap(t *testing.T) {
+	type want struct {
+		first  uint
+		second string
+	}
+
+	tests := []struct {
+		name string
+		args Pair[uint, string]
+		want want
+	}{
+		{
+			name: "OK",
+			args: Pair[uint, string]{First: 10, Second: "ten"},
+			want: want{
+				first:  10,
+				second: "ten",
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			firstResult, secondResult := testCase.args.Unwrap()
+			assert.Equal(t, testCase.want.first, firstResult)
+			assert.Equal(t, testCase.want.second, secondResult)
 		})
 	}
 }
@@ -213,4 +244,195 @@ func TestNewEnumPair(t *testing.T) {
 			assert.Equal(t, testCase.want, result)
 		})
 	}
+}
+
+func TestMapIntoList(t *testing.T) {
+	type want struct {
+		x []string
+		y []int64
+	}
+
+	tests := []struct {
+		name string
+		args map[string]int64
+		want want
+	}{
+		{
+			name: "OK",
+			args: map[string]int64{
+				"i": 1,
+				"c": 2,
+				"p": 3,
+			},
+			want: want{
+				x: []string{"i", "c", "p"},
+				y: []int64{1, 2, 3},
+			},
+		},
+		{
+			name: "empty map",
+			args: map[string]int64{},
+			want: want{},
+		},
+		{
+			name: "nil map",
+			args: nil,
+			want: want{},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result1, result2 := MapIntoList(testCase.args)
+
+			assert.ElementsMatch(t, testCase.want.x, result1)
+			assert.ElementsMatch(t, testCase.want.y, result2)
+		})
+	}
+}
+
+func ExampleMapIntoList() {
+	origin := map[string]int64{
+		"c":   1,
+		"cc":  2,
+		"ccc": 3,
+	}
+
+	keys, values := MapIntoList(origin)
+
+	keys = Sort(keys, func(s1, s2 string) bool { return len(s1) > len(s2) })
+	values = Sort(values, func(i1, i2 int64) bool { return i1 > i2 })
+
+	// Output: [c cc ccc]
+	// [1 2 3]
+	fmt.Println(keys)
+	fmt.Println(values)
+}
+
+func TestListIntoHashSet(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want map[string]bool
+	}{
+		{
+			name: "OK",
+			args: []string{"v1", "v2", "v3"},
+			want: map[string]bool{
+				"v1": true,
+				"v2": true,
+				"v3": true,
+			},
+		},
+		{
+			name: "OK - single value",
+			args: []string{"v1"},
+			want: map[string]bool{
+				"v1": true,
+			},
+		},
+		{
+			name: "no values",
+			args: []string{},
+			want: nil,
+		},
+		{
+			name: "nil values",
+			args: nil,
+			want: nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := ListIntoHashSet(testCase.args)
+			assert.EqualValues(t, testCase.want, result)
+		})
+	}
+}
+
+func ExampleListIntoHashSet() {
+	values := []string{
+		"name",
+		"age",
+		"value",
+	}
+
+	mapValues := ListIntoHashSet(values)
+
+	// Output: true
+	// true
+	// true
+	// false
+	fmt.Println(mapValues["name"])
+	fmt.Println(mapValues["age"])
+	fmt.Println(mapValues["value"])
+	fmt.Println(mapValues["sample"])
+}
+
+func TestMapIntoHashSet(t *testing.T) {
+	tests := []struct {
+		name string
+		args map[string]uint
+		want map[string]bool
+	}{
+		{
+			name: "OK",
+			args: map[string]uint{
+				"column_a": 0,
+				"column_b": 1,
+				"column_c": 2,
+			},
+			want: map[string]bool{
+				"column_a": true,
+				"column_b": true,
+				"column_c": true,
+			},
+		},
+		{
+			name: "OK - single value",
+			args: map[string]uint{
+				"column_a": 0,
+			},
+			want: map[string]bool{
+				"column_a": true,
+			},
+		},
+		{
+			name: "no values",
+			args: map[string]uint{},
+			want: nil,
+		},
+		{
+			name: "nil value",
+			args: nil,
+			want: nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := MapIntoHashSet(testCase.args)
+			assert.EqualValues(t, testCase.want, result)
+		})
+	}
+}
+
+func ExampleMapIntoHashSet() {
+	values := map[string]string{
+		"name":  "michel",
+		"age":   "18",
+		"value": "sample",
+	}
+
+	mapValues := MapIntoHashSet(values)
+
+	// Output: true
+	// true
+	// true
+	// false
+	fmt.Println(mapValues["name"])
+	fmt.Println(mapValues["age"])
+	fmt.Println(mapValues["value"])
+	fmt.Println(mapValues["sample"])
 }
